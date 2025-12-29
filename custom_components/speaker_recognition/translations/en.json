@@ -1,0 +1,81 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Choose helper type",
+        "description": "Select the type of speaker recognition helper to create.",
+        "data": {
+          "helper_type": "Helper type"
+        }
+      },
+      "stt": {
+        "title": "Set up STT proxy",
+        "description": "Configure the STT entity and voice samples for speaker recognition.",
+        "data": {
+          "stt_entity": "Speech-to-text entity",
+          "voice_samples": "Voice samples"
+        },
+        "data_description": {
+          "stt_entity": "Select the STT entity to use for speaker recognition",
+          "voice_samples": "Configure voice samples for each user to enable speaker recognition"
+        }
+      },
+      "conversation": {
+        "title": "Set up Conversation proxy",
+        "description": "Configure the conversation agent and minimum confidence threshold.",
+        "data": {
+          "conversation_entity": "Conversation agent",
+          "min_confidence": "Minimum confidence"
+        },
+        "data_description": {
+          "conversation_entity": "Select the conversation agent to wrap",
+          "min_confidence": "Minimum recognition confidence required to set user ID (0.0-1.0)"
+        }
+      }
+    },
+    "error": {
+      "not_stt_entity": "The selected entity is not a speech-to-text entity",
+      "not_conversation_entity": "The selected entity is not a conversation agent",
+      "user_already_configured": "Voice samples for this user have already been configured"
+    }
+  },
+  "options": {
+    "step": {
+      "stt_options": {
+        "title": "Configure STT proxy",
+        "description": "Update the STT entity and voice samples.",
+        "data": {
+          "stt_entity": "Speech-to-text entity",
+          "voice_samples": "Voice samples"
+        },
+        "data_description": {
+          "stt_entity": "Select the STT entity to use for speaker recognition",
+          "voice_samples": "Add or modify voice samples for speaker recognition"
+        }
+      },
+      "conversation_options": {
+        "title": "Configure Conversation proxy",
+        "description": "Update the conversation agent and minimum confidence threshold.",
+        "data": {
+          "conversation_entity": "Conversation agent",
+          "min_confidence": "Minimum confidence"
+        },
+        "data_description": {
+          "conversation_entity": "Select the conversation agent to wrap",
+          "min_confidence": "Minimum recognition confidence required to set user ID (0.0-1.0)"
+        }
+      }
+    },
+    "error": {
+      "not_stt_entity": "The selected entity is not a speech-to-text entity",
+      "not_conversation_entity": "The selected entity is not a conversation agent",
+      "user_already_configured": "Voice samples for this user have already been configured"
+    }
+  },
+  "selector": {
+    "voice_samples": {
+      "user": "User",
+      "samples": "Audio file"
+    }
+  }
+}

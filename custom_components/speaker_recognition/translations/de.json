@@ -1,0 +1,81 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Helfertyp wählen",
+        "description": "Wählen Sie den Typ des Sprechererkennungshelfers aus.",
+        "data": {
+          "helper_type": "Helfertyp"
+        }
+      },
+      "stt": {
+        "title": "STT-Proxy einrichten",
+        "description": "Konfigurieren Sie die STT-Entität und Sprachproben für die Sprechererkennung.",
+        "data": {
+          "stt_entity": "Sprache-zu-Text-Entität",
+          "voice_samples": "Sprachproben"
+        },
+        "data_description": {
+          "stt_entity": "Wählen Sie die STT-Entität für die Sprechererkennung aus",
+          "voice_samples": "Konfigurieren Sie Sprachproben für jeden Benutzer, um die Sprechererkennung zu aktivieren"
+        }
+      },
+      "conversation": {
+        "title": "Konversations-Proxy einrichten",
+        "description": "Konfigurieren Sie den Konversationsagenten und die Mindestkonfidenz.",
+        "data": {
+          "conversation_entity": "Konversationsagent",
+          "min_confidence": "Mindestkonfidenz"
+        },
+        "data_description": {
+          "conversation_entity": "Wählen Sie den zu umschließenden Konversationsagenten aus",
+          "min_confidence": "Erforderliche Mindesterkennungskonfidenz zum Setzen der Benutzer-ID (0.0-1.0)"
+        }
+      }
+    },
+    "error": {
+      "not_stt_entity": "Die ausgewählte Entität ist keine Sprache-zu-Text-Entität",
+      "not_conversation_entity": "Die ausgewählte Entität ist kein Konversationsagent",
+      "user_already_configured": "Für diesen Benutzer wurden bereits Sprachproben konfiguriert"
+    }
+  },
+  "options": {
+    "step": {
+      "stt_options": {
+        "title": "STT-Proxy konfigurieren",
+        "description": "Aktualisieren Sie die STT-Entität und Sprachproben.",
+        "data": {
+          "stt_entity": "Sprache-zu-Text-Entität",
+          "voice_samples": "Sprachproben"
+        },
+        "data_description": {
+          "stt_entity": "Wählen Sie die STT-Entität für die Sprechererkennung aus",
+          "voice_samples": "Fügen Sie Sprachproben für die Sprechererkennung hinzu oder ändern Sie diese"
+        }
+      },
+      "conversation_options": {
+        "title": "Konversations-Proxy konfigurieren",
+        "description": "Aktualisieren Sie den Konversationsagenten und die Mindestkonfidenz.",
+        "data": {
+          "conversation_entity": "Konversationsagent",
+          "min_confidence": "Mindestkonfidenz"
+        },
+        "data_description": {
+          "conversation_entity": "Wählen Sie den zu umschließenden Konversationsagenten aus",
+          "min_confidence": "Erforderliche Mindesterkennungskonfidenz zum Setzen der Benutzer-ID (0.0-1.0)"
+        }
+      }
+    },
+    "error": {
+      "not_stt_entity": "Die ausgewählte Entität ist keine Sprache-zu-Text-Entität",
+      "not_conversation_entity": "Die ausgewählte Entität ist kein Konversationsagent",
+      "user_already_configured": "Für diesen Benutzer wurden bereits Sprachproben konfiguriert"
+    }
+  },
+  "selector": {
+    "voice_samples": {
+      "user": "Benutzer",
+      "samples": "Audiodatei"
+    }
+  }
+}
