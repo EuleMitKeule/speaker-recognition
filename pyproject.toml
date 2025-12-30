@@ -31,13 +31,13 @@ server = [
 dev = [
     "mypy>=0.971",
     "ruff>=0.0.17",
-    "speaker-recognition[server]",
+    "hass-speaker-recognition[server]",
 ]
 test = [
     "pytest>=8.3.5",
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=5.0.0",
-    "speaker-recognition[server]",
+    "hass-speaker-recognition[server]",
 ]
 
 [tool.uv.sources]
