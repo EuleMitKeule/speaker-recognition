@@ -16,8 +16,8 @@ RUN apk add --no-cache \
     musl-dev \
     python3-dev
 
-COPY pyproject.toml ./
-COPY speaker_recognition ./speaker_recognition
+COPY ../pyproject.toml ./
+COPY ../speaker_recognition ./speaker_recognition
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
