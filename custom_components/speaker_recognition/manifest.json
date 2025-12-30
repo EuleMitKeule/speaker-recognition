@@ -8,10 +8,10 @@
   "dependencies": [
     "stt"
   ],
-  "integration_type": "helper",
+  "integration_type": "service",
   "iot_class": "calculated",
   "requirements": [
-    "Resemblyzer @ git+https://github.com/EuleMitKeule/Resemblyzer.git"
+    "speaker-recognition>=0.0.0-dev"
   ],
-  "version": "0.0.0"
+  "version": "0.0.0-dev"
 }

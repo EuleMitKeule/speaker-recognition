@@ -7,10 +7,10 @@ import logging
 from homeassistant.components import conversation
 from homeassistant.components.conversation import (
     AbstractConversationAgent,
+    ConversationEntity,
     ConversationInput,
     ConversationResult,
 )
-from homeassistant.components.conversation.entity import ConversationEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import (
@@ -23,11 +23,28 @@ from homeassistant.core import (
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
-from homeassistant.helpers.intent import IntentResponse
+from homeassistant.helpers.intent import IntentResponse, IntentResponseErrorCode
 
-from .const import CONF_CONVERSATION_ENTITY, CONF_MIN_CONFIDENCE
+from .const import (
+    CONF_CONVERSATION_ENTITY,
+    CONF_ENTRY_TYPE,
+    CONF_MIN_CONFIDENCE,
+    DEFAULT_MIN_CONFIDENCE,
+    DOMAIN,
+    ENTRY_TYPE_MAIN,
+)
+from .recognition import SpeakerRecognition
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _get_main_entry(hass: HomeAssistant) -> ConfigEntry | None:
+    """Get the main config entry."""
+    entries = hass.config_entries.async_entries(DOMAIN)
+    for entry in entries:
+        if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_MAIN:
+            return entry
+    return None
 
 
 async def async_setup_entry(
@@ -37,9 +54,13 @@ async def async_setup_entry(
 ) -> None:
     """Set up Speaker Recognition Conversation platform via config entry."""
     registry = er.async_get(hass)
-    # Get the configured conversation entity ID from data
     conversation_entity_id = config_entry.data[CONF_CONVERSATION_ENTITY]
     entity_id = er.async_validate_entity_id(registry, conversation_entity_id)
+
+    main_entry = _get_main_entry(hass)
+    if main_entry is None:
+        _LOGGER.error("Main config entry not found")
+        return
 
     async_add_entities(
         [
@@ -49,6 +70,7 @@ async def async_setup_entry(
                 entity_id,
                 config_entry.entry_id,
                 config_entry,
+                main_entry,
             )
         ]
     )
@@ -68,6 +90,7 @@ class SpeakerRecognitionConversationEntity(
         conversation_entity_id: str,
         unique_id: str,
         config_entry: ConfigEntry,
+        main_entry: ConfigEntry,
     ) -> None:
         """Initialize the conversation entity."""
         registry = er.async_get(hass)
@@ -81,13 +104,11 @@ class SpeakerRecognitionConversationEntity(
             wrapped_conversation.has_entity_name if wrapped_conversation else False
         )
 
-        # Build the name with "Speaker Recognition" suffix
         name: str | None = config_entry_title
         if wrapped_conversation:
             if wrapped_conversation.original_name:
                 name = f"{wrapped_conversation.original_name} Speaker Recognition"
             else:
-                # If no original name, use entity ID part
                 entity_name = conversation_entity_id.split(".", 1)[-1]
                 name = f"{entity_name} Speaker Recognition"
 
@@ -100,9 +121,19 @@ class SpeakerRecognitionConversationEntity(
         self._attr_unique_id = unique_id
         self._conversation_entity_id = conversation_entity_id
         self._config_entry = config_entry
+        self._main_entry = main_entry
 
-        # Cache conversation properties - these are static and fetched once
-        self._cached_languages: list[str] | None = None
+        self._cached_languages: list[str] | None | str = None
+
+    @property
+    def recognition(self) -> SpeakerRecognition:
+        """Get the speaker recognition instance."""
+        return self._main_entry.runtime_data
+
+    @property
+    def min_confidence(self) -> float:
+        """Get minimum confidence threshold."""
+        return self._config_entry.data.get(CONF_MIN_CONFIDENCE, DEFAULT_MIN_CONFIDENCE)
 
     @callback
     def _async_update_properties(self) -> None:
@@ -150,7 +181,7 @@ class SpeakerRecognitionConversationEntity(
         _state_changed_listener()
 
     @property
-    def supported_languages(self) -> list[str]:
+    def supported_languages(self) -> list[str] | str:
         """Return a list of supported languages."""
         return self._cached_languages or []
 
@@ -164,16 +195,14 @@ class SpeakerRecognitionConversationEntity(
         if source_agent is None:
             response = IntentResponse(language=user_input.language)
             response.async_set_error(
-                "failed",
+                IntentResponseErrorCode.FAILED_TO_HANDLE,
                 f"Source conversation entity {self._conversation_entity_id} not found",
             )
             return ConversationResult(response=response, conversation_id=None)
 
         # Check if we should enrich the user_id with speaker recognition
         # Check for speaker recognition data
-        speaker_data = self.hass.data.get("speaker_recognition", {}).get(
-            "last_result"
-        )
+        speaker_data = self.hass.data.get("speaker_recognition", {}).get("last_result")
 
         if speaker_data:
             # Get minimum confidence from options or data
@@ -226,9 +255,7 @@ class SpeakerRecognitionConversationEntity(
                             extra_system_prompt=user_input.extra_system_prompt,
                         )
                 else:
-                    _LOGGER.debug(
-                        "Speaker recognition data too old: %.1f seconds", age
-                    )
+                    _LOGGER.debug("Speaker recognition data too old: %.1f seconds", age)
             else:
                 _LOGGER.debug(
                     "Speaker recognition confidence %.3f below threshold %.3f",

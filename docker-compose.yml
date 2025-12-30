@@ -1,0 +1,21 @@
+services:
+  speaker-recognition:
+    image: ghcr.io/eulemitkeule/speaker-recognition:latest
+    container_name: speaker-recognition
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    environment:
+      # Server configuration
+      - HOST=0.0.0.0
+      - PORT=8099
+
+      # Logging configuration
+      - LOG_LEVEL=INFO
+      - ACCESS_LOG=true
+
+      # Storage configuration
+      - EMBEDDINGS_DIR=/data/embeddings
+    volumes:
+      # Persist embeddings data
+      - ./embeddings:/data/embeddings

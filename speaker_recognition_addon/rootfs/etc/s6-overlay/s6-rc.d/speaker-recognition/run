@@ -1,0 +1,23 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+set -e
+
+bashio::log.info "Starting Speaker Recognition Service..."
+
+export HOST=$(bashio::config 'host')
+export PORT=$(bashio::config 'port')
+export LOG_LEVEL=$(bashio::config 'log_level' | tr '[:lower:]' '[:upper:]')
+export ACCESS_LOG=$(bashio::config 'access_log')
+export EMBEDDINGS_DIR=$(bashio::config 'embeddings_dir')
+
+bashio::log.info "Configuration:"
+bashio::log.info "  Host: ${HOST}"
+bashio::log.info "  Port: ${PORT}"
+bashio::log.info "  Log Level: ${LOG_LEVEL}"
+bashio::log.info "  Access Log: ${ACCESS_LOG}"
+bashio::log.info "  Embeddings Directory: ${EMBEDDINGS_DIR}"
+
+mkdir -p "${EMBEDDINGS_DIR}"
+
+cd /app
+exec python3 -m speaker_recognition

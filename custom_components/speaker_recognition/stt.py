@@ -17,31 +17,42 @@ from homeassistant.components.stt import (
     SpeechToTextEntity,
     async_get_speech_to_text_entity,
 )
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
 
-from . import SpeakerRecognitionConfigEntry
-from .const import CONF_STT_ENTITY
+from .const import CONF_ENTRY_TYPE, CONF_STT_ENTITY, DOMAIN, ENTRY_TYPE_MAIN
 from .recognition import SpeakerRecognition
 
 _LOGGER = logging.getLogger(__name__)
 
 
+def _get_main_entry(hass: HomeAssistant) -> ConfigEntry | None:
+    """Get the main config entry."""
+    entries = hass.config_entries.async_entries(DOMAIN)
+    for entry in entries:
+        if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_MAIN:
+            return entry
+    return None
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: SpeakerRecognitionConfigEntry,
-    async_add_entities: AddConfigEntryEntitiesCallback,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Speaker Recognition STT platform via config entry."""
     registry = er.async_get(hass)
-    # Get the configured STT entity ID from options (preferred) or data
-    stt_entity_id = config_entry.options.get(
-        CONF_STT_ENTITY, config_entry.data[CONF_STT_ENTITY]
-    )
+    stt_entity_id = config_entry.data[CONF_STT_ENTITY]
     entity_id = er.async_validate_entity_id(registry, stt_entity_id)
+
+    main_entry = _get_main_entry(hass)
+    if main_entry is None:
+        _LOGGER.error("Main config entry not found")
+        return
 
     async_add_entities(
         [
@@ -50,7 +61,7 @@ async def async_setup_entry(
                 config_entry.title,
                 entity_id,
                 config_entry.entry_id,
-                config_entry,
+                main_entry,
             )
         ]
     )
@@ -67,7 +78,7 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
         config_entry_title: str,
         stt_entity_id: str,
         unique_id: str,
-        config_entry: SpeakerRecognitionConfigEntry,
+        main_entry: ConfigEntry,
     ) -> None:
         """Initialize the STT entity."""
         registry = er.async_get(hass)
@@ -77,13 +88,11 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
         entity_category = wrapped_stt.entity_category if wrapped_stt else None
         has_entity_name = wrapped_stt.has_entity_name if wrapped_stt else False
 
-        # Build the name with "Speaker Recognition" suffix
         name: str | None = config_entry_title
         if wrapped_stt:
             if wrapped_stt.original_name:
                 name = f"{wrapped_stt.original_name} Speaker Recognition"
             else:
-                # If no original name, use entity ID part
                 entity_name = stt_entity_id.split(".", 1)[-1]
                 name = f"{entity_name} Speaker Recognition"
 
@@ -95,9 +104,8 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
         self._attr_name = name
         self._attr_unique_id = unique_id
         self._stt_entity_id = stt_entity_id
-        self._config_entry = config_entry
+        self._main_entry = main_entry
 
-        # Cache STT properties - these are static and fetched once
         self._cached_languages: list[str] | None = None
         self._cached_formats: list[AudioFormats] | None = None
         self._cached_codecs: list[AudioCodecs] | None = None
@@ -156,7 +164,7 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
     @property
     def recognition(self) -> SpeakerRecognition:
         """Get the speaker recognition instance."""
-        return self._config_entry.runtime_data
+        return self._main_entry.runtime_data
 
     @property
     def supported_languages(self) -> list[str]:
@@ -256,7 +264,7 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
                     }
                 else:
                     _LOGGER.error("Speaker recognition returned no result")
-            except Exception as e:
-                _LOGGER.error("Error during speaker recognition: %s", e, exc_info=True)
+            except (OSError, ValueError, TypeError) as error:
+                _LOGGER.error("Error during speaker recognition: %s", error)
 
         return result

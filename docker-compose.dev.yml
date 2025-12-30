@@ -1,0 +1,11 @@
+services:
+  speaker-recognition:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: speaker-recognition
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    volumes:
+      - ./embeddings:/data/embeddings

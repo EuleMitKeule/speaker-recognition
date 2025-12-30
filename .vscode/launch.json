@@ -1,0 +1,11 @@
+{
+    "configurations": [
+        {
+            "name": "Speaker Recognition",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "speaker_recognition",
+            "justMyCode": true
+        }
+    ]
+}
