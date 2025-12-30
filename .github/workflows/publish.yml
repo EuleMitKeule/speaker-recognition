@@ -177,8 +177,8 @@ jobs:
         with:
           args: |
             --${{ matrix.arch }} \
-            --target /data/speaker_recognition_addon \
-            --generic ${{ needs.version.outputs.version }} \
-            --generic latest \
+            --target ./speaker_recognition_addon \
+            --image speaker-recognition-addon \
             --docker-hub "ghcr.io/${{ github.repository_owner }}" \
+            --version ${{ needs.version.outputs.version }} \
             --addon
