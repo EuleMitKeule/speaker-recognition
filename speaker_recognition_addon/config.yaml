@@ -4,7 +4,6 @@ slug: speaker_recognition
 description: Speaker recognition service using voice embeddings for identification
 url: https://github.com/eulemitkeule/speaker-recognition/tree/master/speaker_recognition_addon
 arch:
-  - aarch64
   - amd64
 init: false
 startup: services

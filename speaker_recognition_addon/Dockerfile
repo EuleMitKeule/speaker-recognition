@@ -16,7 +16,9 @@ RUN apk add --no-cache \
     musl-dev \
     python3-dev \
     cmake \
-    ninja
+    ninja \
+    llvm15-dev \
+    llvm15-static
 
 COPY pyproject.toml ./
 COPY speaker_recognition ./speaker_recognition

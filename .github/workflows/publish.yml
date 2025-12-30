@@ -157,7 +157,7 @@ jobs:
     name: Build ${{ matrix.arch }} add-on
     strategy:
       matrix:
-        arch: ["aarch64", "amd64"]
+        arch: ["amd64"]
     permissions:
       contents: read
       packages: write
