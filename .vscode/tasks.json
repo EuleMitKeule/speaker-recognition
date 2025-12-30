@@ -2,12 +2,12 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Start Home Assistant",
+            "label": "Start Supervisor",
             "type": "shell",
             "command": "supervisor_run",
             "group": {
                 "kind": "test",
-                "isDefault": true
+                "isDefault": false
             },
             "presentation": {
                 "reveal": "always",
@@ -53,7 +53,7 @@
             "type": "pickString",
             "description": "Name of addon (to add your addon to this list, please edit .vscode/tasks.json)",
             "options": [
-                "speaker_recognition_addon",
+                "speaker_recognition",
             ]
         }
     ]

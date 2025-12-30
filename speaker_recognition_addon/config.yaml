@@ -26,4 +26,3 @@ schema:
   log_level: list(debug|info|warning|error|critical)
   access_log: bool
   embeddings_dir: str
-image: ghcr.io/eulemitkeule/{arch}-speaker-recognition-addon
