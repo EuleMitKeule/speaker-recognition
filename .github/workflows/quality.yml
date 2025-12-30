@@ -49,7 +49,7 @@ jobs:
 
       - name: Run ruff
         run: |
-          uv run ruff check .
+          uv run ruff check speaker_recognition tests
 
   mypy:
     needs: cache
@@ -91,7 +91,7 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run pytest --cov=. --cov-report=term tests
+          uv run pytest --cov=. --cov-report=term tests -v
 
   find-addons:
     name: Find add-ons

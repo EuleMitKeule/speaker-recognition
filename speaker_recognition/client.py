@@ -35,7 +35,9 @@ class SpeakerRecognitionClient:
         )
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self, exc_type: object, exc_val: object, exc_tb: object
+    ) -> None:
         """Exit async context manager."""
         if self._client:
             await self._client.aclose()
@@ -133,7 +135,7 @@ class SyncSpeakerRecognitionClient:
         )
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
         """Exit context manager."""
         if self._client:
             self._client.close()

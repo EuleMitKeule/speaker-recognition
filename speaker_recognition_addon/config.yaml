@@ -6,10 +6,8 @@ url: https://github.com/eulemitkeule/speaker-recognition/tree/master/speaker_rec
 arch:
   - aarch64
   - amd64
-  - armv7
 init: false
 startup: services
-boot: auto
 ports:
   8099/tcp: 8099
 ports_description:

@@ -72,7 +72,10 @@ class SpeakerRecognizer:
             raise ValueError("Empty audio data")
 
         audio_array_float32 = audio_array_int16.astype(np.float32) / 32768.0
-        return preprocess_wav(audio_array_float32, source_sr=audio_input.sample_rate)
+        result: NDArray[np.float32] = preprocess_wav(
+            audio_array_float32, source_sr=audio_input.sample_rate
+        )
+        return result
 
     def train(self, request: TrainingRequest) -> TrainingResult:
         """Train the speaker recognition model.

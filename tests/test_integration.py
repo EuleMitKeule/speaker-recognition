@@ -47,13 +47,26 @@ def read_audio_file_as_base64(file_path: Path) -> tuple[str, int]:
 @pytest.fixture(scope="module")
 def api_server():
     """Start API server for testing."""
+    import time
+
+    import httpx
+
     server_process = Process(target=start_api_server)
     server_process.start()
 
-    # Wait for server to start
-    import time
-
-    time.sleep(3)
+    # Wait for server to be ready with health checks
+    max_attempts = 30
+    for attempt in range(max_attempts):
+        try:
+            response = httpx.get(f"{API_BASE_URL}/health", timeout=1.0)
+            if response.status_code == 200:
+                break
+        except (httpx.ConnectError, httpx.TimeoutException):
+            if attempt == max_attempts - 1:
+                server_process.terminate()
+                server_process.join(timeout=5)
+                raise RuntimeError("Server failed to start within timeout")
+            time.sleep(0.5)
 
     yield
 
