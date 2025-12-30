@@ -1,5 +1,5 @@
 [project]
-name = "speaker-recognition"
+name = "hass-speaker-recognition"
 version = "0.0.0-dev"
 description = "Speaker recognition for Home Assistant using Resemblyzer"
 readme = "README.md"

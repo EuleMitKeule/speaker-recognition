@@ -11,7 +11,7 @@
   "integration_type": "service",
   "iot_class": "calculated",
   "requirements": [
-    "speaker-recognition>=0.0.0-dev"
+    "hass-speaker-recognition>=0.0.0-dev"
   ],
   "version": "0.0.0-dev"
 }
