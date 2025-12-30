@@ -14,14 +14,16 @@ RUN apk add --no-cache \
     gcc \
     g++ \
     musl-dev \
-    python3-dev
+    python3-dev \
+    cmake \
+    ninja
 
 COPY pyproject.toml ./
 COPY speaker_recognition ./speaker_recognition
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-RUN uv pip install --system --no-cache -e ".[server]"
+RUN uv pip install --system --no-cache --index-strategy unsafe-best-match -e ".[server]"
 
 ENV HOST=0.0.0.0 \
     PORT=8099 \
