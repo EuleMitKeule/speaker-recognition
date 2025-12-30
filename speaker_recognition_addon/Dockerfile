@@ -26,7 +26,7 @@ COPY speaker_recognition ./speaker_recognition
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-RUN uv pip install --system --no-cache --index-strategy unsafe-best-match -e ".[server]"
+RUN uv pip install --system --no-cache --index-strategy unsafe-best-match --break-system-packages -e ".[server]"
 
 ENV HOST=0.0.0.0 \
     PORT=8099 \
