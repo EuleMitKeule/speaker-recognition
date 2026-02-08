@@ -201,8 +201,13 @@ class SpeakerRecognitionConversationEntity(
             return ConversationResult(response=response, conversation_id=None)
 
         # Check if we should enrich the user_id with speaker recognition
-        # Check for speaker recognition data
         speaker_data = self.hass.data.get("speaker_recognition", {}).get("last_result")
+        
+        _LOGGER.debug(
+            "Checking speaker data - found: %s, data: %s",
+            speaker_data is not None,
+            speaker_data
+        )
 
         if speaker_data:
             # Get minimum confidence from options or data
@@ -236,6 +241,27 @@ class SpeakerRecognitionConversationEntity(
                             confidence,
                         )
 
+                        # Get the user's name from Home Assistant
+                        user = await self.hass.auth.async_get_user(recognized_user_id)
+                        
+                        _LOGGER.debug(
+                            "User lookup - user found: %s, user.name: %s, user.id: %s",
+                            user is not None,
+                            user.name if user else "N/A",
+                            user.id if user else "N/A"
+                        )
+                        
+                        user_name = user.name if user else recognized_user_id
+
+                        # Inject speaker info directly into the user's question
+                        # This ensures Mistral sees it within the [INST] tags
+                        enriched_text = f"[The person speaking is: {user_name}] {user_input.text}"
+                        
+                        _LOGGER.debug(
+                            "Enriched text: %s",
+                            enriched_text
+                        )
+
                         # Create new context with user_id
                         enriched_context = Context(
                             user_id=recognized_user_id,
@@ -243,9 +269,9 @@ class SpeakerRecognitionConversationEntity(
                             id=user_input.context.id,
                         )
 
-                        # Create new input with enriched context
+                        # Create new input with enriched text and context
                         user_input = ConversationInput(
-                            text=user_input.text,
+                            text=enriched_text,
                             context=enriched_context,
                             conversation_id=user_input.conversation_id,
                             device_id=user_input.device_id,
