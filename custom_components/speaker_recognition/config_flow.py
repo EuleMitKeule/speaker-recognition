@@ -61,7 +61,8 @@ async def _build_voice_samples_schema(
                     "required": True,
                     "selector": selector.MediaSelector(
                         selector.MediaSelectorConfig(
-                            multiple=True, accept=["audio/wav", "audio/mpeg"]
+                            multiple=False, #changed this to `False`
+                            accept=["audio/wav", "audio/x-wav", "audio/mpeg"]
                         )
                     ),
                 },
@@ -259,6 +260,12 @@ class SpeakerRecognitionOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Manage main config options."""
         if user_input is not None:
+            import logging
+            _LOGGER = logging.getLogger(__name__)
+            _LOGGER.error(f"DEBUG: user_input = {user_input}")
+            _LOGGER.error(f"DEBUG: voice_samples type = {type(user_input.get(CONF_VOICE_SAMPLES))}")
+            _LOGGER.error(f"DEBUG: voice_samples content = {user_input.get(CONF_VOICE_SAMPLES)}")
+
             return self.async_create_entry(
                 title="",
                 data={
