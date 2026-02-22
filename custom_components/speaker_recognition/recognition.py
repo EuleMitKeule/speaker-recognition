@@ -42,8 +42,9 @@ class SpeakerRecognition:
         """
         self.hass = hass
         self.voice_samples = voice_samples
-        self._trained = False
         self._client = SpeakerRecognitionClient(base_url=base_url, timeout=300.0)
+
+        self._trained = False
 
     async def async_train(self) -> None:
         """Train the speaker recognition model with configured voice samples."""
@@ -106,6 +107,28 @@ class SpeakerRecognition:
                 result.users_trained,
             )
 
+    async def async_check_training_status(self) -> None:
+        """Check if the backend service has trained embeddings."""
+        try:
+            # Try a dummy recognition to see if the service is trained
+            # The service will fail gracefully if not trained
+            dummy_audio = base64.b64encode(b'\x00' * 1000).decode('utf-8')
+            request = RecognitionRequest(
+                audio=AudioInput(
+                    audio_data=dummy_audio,
+                    sample_rate=16000,
+                )
+            )
+        
+            # If this doesn't raise an exception, the service is trained
+            await self._client.recognize(request)
+            self._trained = True
+            _LOGGER.info("Speaker recognition backend is already trained")
+        except Exception:
+            # Service not trained or other error - keep _trained = False
+            _LOGGER.debug("Speaker recognition backend not yet trained")
+            self._trained = False
+
     async def async_recognize(
         self, audio_data: bytes, sample_rate: int = 16000
     ) -> RecognitionResult | None:
@@ -119,8 +142,7 @@ class SpeakerRecognition:
             RecognitionResult if a speaker is recognized, None otherwise
         """
         if not self._trained:
-            _LOGGER.debug("Speaker recognition not trained yet")
-            return None
+            _LOGGER.info("Checking if backend service is pre-trained...")
 
         try:
             audio_base64 = base64.b64encode(audio_data).decode("utf-8")
@@ -133,6 +155,11 @@ class SpeakerRecognition:
             )
 
             result = await self._client.recognize(request)
+            
+            #if we got here, backend is trained
+            if not self._trained:
+                self._trained = True
+                _LOGGER.info("Backend service is pre-trained and ready")
 
         except (OSError, ValueError, TypeError) as error:
             _LOGGER.error("Error during recognition: %s", error)
