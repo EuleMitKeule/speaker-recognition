@@ -1,0 +1,3 @@
+# Source files copied from parent directory for addon build
+pyproject.toml
+speaker_recognition/
