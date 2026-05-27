@@ -83,6 +83,7 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
         """Initialize the STT entity."""
         registry = er.async_get(hass)
         device_registry = dr.async_get(hass)
+
         wrapped_stt = registry.async_get(stt_entity_id)
         device_id = wrapped_stt.device_id if wrapped_stt else None
         entity_category = wrapped_stt.entity_category if wrapped_stt else None
@@ -103,6 +104,7 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
         self._attr_has_entity_name = has_entity_name
         self._attr_name = name
         self._attr_unique_id = unique_id
+
         self._stt_entity_id = stt_entity_id
         self._main_entry = main_entry
 
@@ -136,9 +138,10 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
             self._attr_available = False
         else:
             self._attr_available = True
-            # Update cached properties if not yet set
-            if self._cached_languages is None:
-                self._async_update_properties()
+
+        # Update cached properties if not yet set
+        if self._cached_languages is None:
+            self._async_update_properties()
 
     async def async_added_to_hass(self) -> None:
         """Handle entity added to hass."""
@@ -205,7 +208,6 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
         """
         # Get the source entity - it should be available if we're being called
         source_entity = async_get_speech_to_text_entity(self.hass, self._stt_entity_id)
-
         if source_entity is None:
             # Entity not found - return error
             return SpeechResult(None, SpeechResultState.ERROR)
@@ -228,19 +230,21 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
         if audio_buffer:
             try:
                 recognition_result = await self.recognition.async_recognize(
-                    bytes(audio_buffer), sample_rate=metadata.sample_rate
+                    bytes(audio_buffer),
+                    sample_rate=metadata.sample_rate,
                 )
 
                 if recognition_result:
-                    # Log the recognition result as error for now
-                    _LOGGER.error(
+                    all_scores = {
+                        user: f"{score:.3f}"
+                        for user, score in recognition_result.all_scores.items()
+                    }
+
+                    _LOGGER.info(
                         "Speaker Recognition Result - User: %s, Confidence: %.3f, All scores: %s",
                         recognition_result.user_id,
                         recognition_result.confidence,
-                        {
-                            user: f"{score:.3f}"
-                            for user, score in recognition_result.all_scores.items()
-                        },
+                        all_scores,
                     )
 
                     # Fire an event with the recognition result
@@ -254,16 +258,20 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
                         },
                     )
 
-                    # Store the most recent recognition result for potential conversation use
+                    # Store the most recent recognition result for conversation use
                     if "speaker_recognition" not in self.hass.data:
                         self.hass.data["speaker_recognition"] = {}
+
                     self.hass.data["speaker_recognition"]["last_result"] = {
                         "user_id": recognition_result.user_id,
                         "confidence": recognition_result.confidence,
                         "timestamp": self.hass.loop.time(),
+                        "entity_id": self.entity_id,
+                        "all_scores": recognition_result.all_scores,
                     }
                 else:
-                    _LOGGER.error("Speaker recognition returned no result")
+                    _LOGGER.warning("Speaker recognition returned no result")
+
             except (OSError, ValueError, TypeError) as error:
                 _LOGGER.error("Error during speaker recognition: %s", error)
 
