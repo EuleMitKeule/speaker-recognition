@@ -8,6 +8,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from speaker_recognition import SpeakerRecognitionClient
+from speaker_recognition.audio import (
+    media_selector_content_ids,
+    read_wav_pcm,
+    resolve_local_media_path,
+)
 from speaker_recognition.models import (
     AudioInput,
     RecognitionRequest,
@@ -59,34 +64,46 @@ class SpeakerRecognition:
 
         try:
             voice_sample_models = []
+            media_dir = Path(self.hass.config.path("media"))
+
             for sample in self.voice_samples:
                 user_id = sample["user"]
-                media_id = sample["samples"].get("media_content_id", "")
+                media_ids = media_selector_content_ids(sample.get("samples"))
 
-                if media_id.startswith("media-source://media_source/local/"):
-                    relative_path = media_id.replace(
-                        "media-source://media_source/local/", ""
-                    )
-                    full_path = Path(self.hass.config.path("media")) / relative_path
+                if not media_ids:
+                    _LOGGER.warning("No media files configured for user: %s", user_id)
+                    continue
 
-                    # Read the audio file
-                    audio_data = await self.hass.async_add_executor_job(
-                        full_path.read_bytes
-                    )
-                    audio_base64 = base64.b64encode(audio_data).decode("utf-8")
+                for media_id in media_ids:
+                    try:
+                        full_path = resolve_local_media_path(media_id, media_dir)
+                        if full_path is None:
+                            _LOGGER.warning(
+                                "Unsupported media_content_id format: %s", media_id
+                            )
+                            continue
+
+                        prepared_audio = await self.hass.async_add_executor_job(
+                            read_wav_pcm, full_path
+                        )
+                    except (OSError, ValueError) as error:
+                        _LOGGER.warning(
+                            "Skipping voice sample %s for user %s: %s",
+                            media_id,
+                            user_id,
+                            error,
+                        )
+                        continue
 
                     voice_sample_models.append(
                         VoiceSample(
                             user=user_id,
                             audio=AudioInput(
-                                audio_data=audio_base64,
-                                sample_rate=16000,
+                                audio_data=prepared_audio.audio_data,
+                                sample_rate=prepared_audio.sample_rate,
                             ),
                         )
                     )
-                else:
-                    _LOGGER.warning("Unsupported media_content_id format: %s", media_id)
-                    continue
 
             if not voice_sample_models:
                 _LOGGER.warning("No valid training samples prepared")
@@ -103,7 +120,7 @@ class SpeakerRecognition:
             self._trained = True
             _LOGGER.info(
                 "Speaker recognition training completed: %d users trained",
-                result.users_trained,
+                result.count,
             )
 
     async def async_recognize(

@@ -61,7 +61,13 @@ async def _build_voice_samples_schema(
                     "required": True,
                     "selector": selector.MediaSelector(
                         selector.MediaSelectorConfig(
-                            multiple=True, accept=["audio/wav", "audio/mpeg"]
+                            multiple=True,
+                            accept=[
+                                "audio/wav",
+                                "audio/x-wav",
+                                "audio/wave",
+                                "audio/vnd.wave",
+                            ],
                         )
                     ),
                 },
