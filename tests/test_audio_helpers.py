@@ -51,13 +51,39 @@ def test_media_selector_content_ids_accepts_list() -> None:
     ]
 
 
-def test_resolve_local_media_path() -> None:
+def test_resolve_local_media_path(tmp_path: Path) -> None:
     """Resolve Home Assistant local media IDs under the media directory."""
-    media_dir = Path.cwd() / "media"
+    media_dir = tmp_path / "media"
+    media_path = media_dir / "voices" / "ilya.wav"
+    media_path.parent.mkdir(parents=True, exist_ok=True)
+    media_path.touch()
 
     assert resolve_local_media_path(
         f"{LOCAL_MEDIA_PREFIX}voices/ilya.wav", media_dir
-    ) == (media_dir / "voices" / "ilya.wav").resolve()
+    ) == media_path.resolve()
+
+
+def test_resolve_local_media_path_checks_multiple_roots(tmp_path: Path) -> None:
+    """Resolve local media from the first existing candidate root."""
+    missing_media_dir = tmp_path / "config" / "media"
+    media_dir = tmp_path / "media"
+    media_path = media_dir / "ilya_voice_sample.wav"
+    media_path.parent.mkdir(parents=True)
+    media_path.touch()
+
+    assert resolve_local_media_path(
+        f"{LOCAL_MEDIA_PREFIX}ilya_voice_sample.wav",
+        [missing_media_dir, media_dir],
+    ) == media_path.resolve()
+
+
+def test_resolve_local_media_path_reports_checked_paths(tmp_path: Path) -> None:
+    """Report all checked local media paths when the file is missing."""
+    with pytest.raises(FileNotFoundError, match="config.*media.*media"):
+        resolve_local_media_path(
+            f"{LOCAL_MEDIA_PREFIX}missing.wav",
+            [tmp_path / "config" / "media", tmp_path / "media"],
+        )
 
 
 def test_resolve_local_media_path_rejects_path_escape(tmp_path: Path) -> None:

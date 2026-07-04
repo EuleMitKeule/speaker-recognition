@@ -64,7 +64,10 @@ class SpeakerRecognition:
 
         try:
             voice_sample_models = []
-            media_dir = Path(self.hass.config.path("media"))
+            media_dirs = [
+                Path("/media"),
+                Path(self.hass.config.path("media")),
+            ]
 
             for sample in self.voice_samples:
                 user_id = sample["user"]
@@ -76,7 +79,7 @@ class SpeakerRecognition:
 
                 for media_id in media_ids:
                     try:
-                        full_path = resolve_local_media_path(media_id, media_dir)
+                        full_path = resolve_local_media_path(media_id, media_dirs)
                         if full_path is None:
                             _LOGGER.warning(
                                 "Unsupported media_content_id format: %s", media_id

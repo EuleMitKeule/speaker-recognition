@@ -263,7 +263,7 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
                         "timestamp": self.hass.loop.time(),
                     }
                 else:
-                    _LOGGER.error("Speaker recognition returned no result")
+                    _LOGGER.warning("Speaker recognition returned no result")
             except (OSError, ValueError, TypeError) as error:
                 _LOGGER.error("Error during speaker recognition: %s", error)
 

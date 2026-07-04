@@ -11,7 +11,7 @@
   "integration_type": "service",
   "iot_class": "calculated",
   "requirements": [
-    "hass-speaker-recognition>=0.0.0-dev"
+    "hass-speaker-recognition@git+https://github.com/Ilya56/speaker-recognition.git@fix/training-flow"
   ],
   "version": "0.0.0-dev"
 }
