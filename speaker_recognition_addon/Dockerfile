@@ -1,41 +1,23 @@
-ARG BUILD_FROM
-FROM ${BUILD_FROM}
+# Home Assistant add-on: Speaker Recognition
+#
+# The recognition server only builds on Python 3.9 (resemblyzer / torch pin to
+# `python_version < '3.10'`). Rebuilding that ML stack on the Home Assistant
+# Alpine base image fails, and copying the repo sources into the add-on build
+# context only happens in CI (not when the Supervisor builds the add-on from
+# git), which is why local installs failed.
+#
+# Instead we base the add-on on the already-published server image (built
+# `FROM python:3.9-slim`). This makes the Supervisor build trivial and reliable:
+# no source copying, no native ML compilation inside the add-on build.
+#
+# NOTE: `FROM` is hardcoded on purpose. The Supervisor / HA builder injects a
+# `BUILD_FROM` build-arg, but we intentionally ignore it so the correct Python
+# 3.9 base is always used regardless of the arch base image.
+FROM ghcr.io/eulemitkeule/speaker-recognition:1.0.12
 
-ARG TEMPIO_VERSION BUILD_ARCH
-RUN \
-    curl -sSLf -o /usr/bin/tempio \
-    "https://github.com/home-assistant/tempio/releases/download/${TEMPIO_VERSION}/tempio_${BUILD_ARCH}" && \
-    chmod +x /usr/bin/tempio
+# Map the add-on options (/data/options.json) to the env vars the server reads,
+# then launch the (already installed) recognition service.
+COPY run.sh /run.sh
+RUN chmod a+x /run.sh
 
-WORKDIR /app
-
-RUN apk add --no-cache \
-    python3 \
-    py3-pip \
-    gcc \
-    g++ \
-    musl-dev \
-    python3-dev \
-    cmake \
-    ninja \
-    llvm-dev \
-    llvm-static
-
-COPY pyproject.toml ./
-COPY speaker_recognition ./speaker_recognition
-
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-
-RUN uv pip install --system --no-cache --index-strategy unsafe-best-match --break-system-packages -e ".[server]"
-
-ENV HOST=0.0.0.0 \
-    PORT=8099 \
-    LOG_LEVEL=INFO \
-    ACCESS_LOG=true \
-    EMBEDDINGS_DIR=/share/speaker_recognition/embeddings
-
-COPY rootfs /
-
-RUN chmod a+x /etc/s6-overlay/s6-rc.d/speaker-recognition/run
-
-CMD ["/init"]
+CMD ["/run.sh"]
