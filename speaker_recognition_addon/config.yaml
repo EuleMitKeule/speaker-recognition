@@ -1,5 +1,5 @@
 name: Speaker Recognition
-version: "0.1.1"
+version: "0.1.2-dev.1"
 slug: speaker_recognition
 description: Speaker recognition service using voice embeddings for identification
 url: https://github.com/Ilya56/speaker-recognition/tree/master/speaker_recognition_addon

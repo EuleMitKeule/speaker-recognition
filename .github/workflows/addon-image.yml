@@ -6,6 +6,7 @@ on:
     branches:
       - master
       - fix/stabilize-addon-startup
+      - fix/training-flow
     paths:
       - ".github/workflows/addon-image.yml"
       - "pyproject.toml"
