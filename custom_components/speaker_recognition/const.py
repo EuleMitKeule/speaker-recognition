@@ -23,4 +23,7 @@ CONF_MIN_CONFIDENCE = "min_confidence"
 
 # Defaults
 DEFAULT_BACKEND_URL = "http://localhost:8099"
-DEFAULT_MIN_CONFIDENCE = 0.0
+# Minimum recognition confidence before a recognised speaker is applied to the
+# conversation. A value of 0.0 would apply *any* match (even a near-zero score),
+# which misattributes the speaker, so we default to a conservative threshold.
+DEFAULT_MIN_CONFIDENCE = 0.7
