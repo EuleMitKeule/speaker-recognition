@@ -1,0 +1,40 @@
+name: Validate
+
+# Standard Home Assistant / HACS validation for the custom integration:
+# - hassfest validates the integration manifest and structure.
+# - HACS action validates the repository is installable through HACS.
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  hassfest:
+    name: Hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Run hassfest
+        uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Run HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
+          # The domain is not registered in home-assistant/brands (this is a
+          # custom integration), so skip the brands check.
+          ignore: brands
