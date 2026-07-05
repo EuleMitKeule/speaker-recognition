@@ -254,10 +254,14 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
                         },
                     )
 
-                    # Store the most recent recognition result for potential conversation use
-                    if "speaker_recognition" not in self.hass.data:
-                        self.hass.data["speaker_recognition"] = {}
-                    self.hass.data["speaker_recognition"]["last_result"] = {
+                    # Store the result keyed by this STT proxy entity so the
+                    # conversation proxy can pick it up. Keeping it per-entity
+                    # (instead of a single shared "last_result") avoids results
+                    # from different STT proxies overwriting each other.
+                    results = self.hass.data.setdefault(DOMAIN, {}).setdefault(
+                        "results", {}
+                    )
+                    results[self.entity_id] = {
                         "user_id": recognition_result.user_id,
                         "confidence": recognition_result.confidence,
                         "timestamp": self.hass.loop.time(),
