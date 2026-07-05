@@ -37,6 +37,10 @@ from .recognition import SpeakerRecognition
 
 _LOGGER = logging.getLogger(__name__)
 
+# How long a stored speaker-recognition result stays usable by a conversation
+# turn before it is considered stale.
+RECOGNITION_RESULT_MAX_AGE = 5.0
+
 
 def _get_main_entry(hass: HomeAssistant) -> ConfigEntry | None:
     """Get the main config entry."""
@@ -185,6 +189,32 @@ class SpeakerRecognitionConversationEntity(
         """Return a list of supported languages."""
         return self._cached_languages or []
 
+    def _pop_recent_speaker_result(self) -> dict | None:
+        """Return and consume the most recent non-expired recognition result.
+
+        Results are stored per STT proxy entity in ``hass.data``. We take the
+        freshest one within the freshness window and remove it, so a given
+        recognition is applied to at most one conversation turn (and a stale
+        result is never reused by a later, unrelated turn).
+        """
+        results = self.hass.data.get(DOMAIN, {}).get("results")
+        if not results:
+            return None
+
+        now = self.hass.loop.time()
+        newest_key: str | None = None
+        newest: dict | None = None
+        for key, data in results.items():
+            if now - data.get("timestamp", 0) >= RECOGNITION_RESULT_MAX_AGE:
+                continue
+            if newest is None or data["timestamp"] > newest["timestamp"]:
+                newest = data
+                newest_key = key
+
+        if newest_key is not None:
+            results.pop(newest_key, None)
+        return newest
+
     async def async_process(self, user_input: ConversationInput) -> ConversationResult:
         """Process a conversation turn."""
         # Get the source conversation agent
@@ -200,9 +230,10 @@ class SpeakerRecognitionConversationEntity(
             )
             return ConversationResult(response=response, conversation_id=None)
 
-        # Check if we should enrich the user_id with speaker recognition
-        # Check for speaker recognition data
-        speaker_data = self.hass.data.get("speaker_recognition", {}).get("last_result")
+        # Pick up the most recent speaker-recognition result (produced by an STT
+        # proxy) within the freshness window and consume it, so a later and
+        # unrelated conversation turn cannot be enriched with a stale result.
+        speaker_data = self._pop_recent_speaker_result()
 
         if speaker_data:
             # Get minimum confidence from options or data
@@ -216,46 +247,39 @@ class SpeakerRecognitionConversationEntity(
 
             # Check if confidence is above threshold
             if confidence >= min_confidence and recognized_user_id:
-                # Check if result is recent (within last 5 seconds)
-                timestamp = speaker_data.get("timestamp", 0)
-                age = self.hass.loop.time() - timestamp
+                # Enrich if: no user_id OR different user_id from recognition
+                should_enrich = (
+                    user_input.context.user_id is None
+                    or user_input.context.user_id != recognized_user_id
+                )
 
-                if age < 5.0:  # 5 second window
-                    # Enrich if: no user_id OR different user_id from recognition
-                    should_enrich = (
-                        user_input.context.user_id is None
-                        or user_input.context.user_id != recognized_user_id
+                if should_enrich:
+                    _LOGGER.info(
+                        "Enriching conversation with speaker recognition: "
+                        "original_user_id=%s, recognized_user_id=%s, confidence=%.3f",
+                        user_input.context.user_id,
+                        recognized_user_id,
+                        confidence,
                     )
 
-                    if should_enrich:
-                        _LOGGER.info(
-                            "Enriching conversation with speaker recognition: "
-                            "original_user_id=%s, recognized_user_id=%s, confidence=%.3f",
-                            user_input.context.user_id,
-                            recognized_user_id,
-                            confidence,
-                        )
+                    # Create new context with user_id
+                    enriched_context = Context(
+                        user_id=recognized_user_id,
+                        parent_id=user_input.context.parent_id,
+                        id=user_input.context.id,
+                    )
 
-                        # Create new context with user_id
-                        enriched_context = Context(
-                            user_id=recognized_user_id,
-                            parent_id=user_input.context.parent_id,
-                            id=user_input.context.id,
-                        )
-
-                        # Create new input with enriched context
-                        user_input = ConversationInput(
-                            text=user_input.text,
-                            context=enriched_context,
-                            conversation_id=user_input.conversation_id,
-                            device_id=user_input.device_id,
-                            satellite_id=user_input.satellite_id,
-                            language=user_input.language,
-                            agent_id=user_input.agent_id,
-                            extra_system_prompt=user_input.extra_system_prompt,
-                        )
-                else:
-                    _LOGGER.debug("Speaker recognition data too old: %.1f seconds", age)
+                    # Create new input with enriched context
+                    user_input = ConversationInput(
+                        text=user_input.text,
+                        context=enriched_context,
+                        conversation_id=user_input.conversation_id,
+                        device_id=user_input.device_id,
+                        satellite_id=user_input.satellite_id,
+                        language=user_input.language,
+                        agent_id=user_input.agent_id,
+                        extra_system_prompt=user_input.extra_system_prompt,
+                    )
             else:
                 _LOGGER.debug(
                     "Speaker recognition confidence %.3f below threshold %.3f",
