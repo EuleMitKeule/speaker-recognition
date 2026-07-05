@@ -1,75 +1,97 @@
 {
   "config": {
     "step": {
-      "user": {
-        "title": "Helfertyp wählen",
-        "description": "Wählen Sie den Typ des Sprechererkennungshelfers aus.",
+      "main": {
+        "title": "Sprechererkennung",
+        "description": "Verbinden Sie sich mit dem Sprechererkennungs-Backend und fügen Sie optional Sprachproben hinzu, um Benutzer zu trainieren.",
         "data": {
-          "helper_type": "Helfertyp"
-        }
-      },
-      "stt": {
-        "title": "STT-Proxy einrichten",
-        "description": "Konfigurieren Sie die STT-Entität und Sprachproben für die Sprechererkennung.",
-        "data": {
-          "stt_entity": "Sprache-zu-Text-Entität",
+          "backend_url": "Backend-URL",
           "voice_samples": "Sprachproben"
         },
         "data_description": {
-          "stt_entity": "Wählen Sie die STT-Entität für die Sprechererkennung aus",
-          "voice_samples": "Konfigurieren Sie Sprachproben für jeden Benutzer, um die Sprechererkennung zu aktivieren"
+          "backend_url": "URL des Sprechererkennungs-Servers (z. B. http://localhost:8099)",
+          "voice_samples": "Wählen Sie für jeden Benutzer eine oder mehrere Audiodateien aus, um seine Stimme zu trainieren"
         }
       },
-      "conversation": {
-        "title": "Konversations-Proxy einrichten",
-        "description": "Konfigurieren Sie den Konversationsagenten und die Mindestkonfidenz.",
+      "menu": {
+        "title": "Proxy hinzufügen",
+        "description": "Fügen Sie eine Proxy-Entität hinzu, die einer vorhandenen Sprache-zu-Text- oder Konversations-Entität Sprechererkennung hinzufügt.",
+        "menu_options": {
+          "add_stt": "Sprache-zu-Text-Proxy (STT)",
+          "add_conversation": "Konversationsagent-Proxy"
+        }
+      },
+      "add_stt": {
+        "title": "STT-Proxy hinzufügen",
+        "description": "Umschließt eine Sprache-zu-Text-Entität, sodass der Sprecher aus dem gesprochenen Audio erkannt wird. Verwenden Sie die erstellte Proxy-Entität in Ihrer Assist-Pipeline.",
+        "data": {
+          "stt_entity": "Sprache-zu-Text-Entität"
+        },
+        "data_description": {
+          "stt_entity": "Die zu umschließende STT-Entität"
+        }
+      },
+      "add_conversation": {
+        "title": "Konversations-Proxy hinzufügen",
+        "description": "Umschließt einen Konversationsagenten, sodass der erkannte Sprecher an ihn übergeben wird. Verwenden Sie die erstellte Proxy-Entität in Ihrer Assist-Pipeline.",
         "data": {
           "conversation_entity": "Konversationsagent",
           "min_confidence": "Mindestkonfidenz"
         },
         "data_description": {
-          "conversation_entity": "Wählen Sie den zu umschließenden Konversationsagenten aus",
-          "min_confidence": "Erforderliche Mindesterkennungskonfidenz zum Setzen der Benutzer-ID (0.0-1.0)"
+          "conversation_entity": "Der zu umschließende Konversationsagent",
+          "min_confidence": "Mindesterkennungskonfidenz (0.0-1.0), bevor der erkannte Sprecher angewendet wird"
         }
       }
     },
     "error": {
       "not_stt_entity": "Die ausgewählte Entität ist keine Sprache-zu-Text-Entität",
-      "not_conversation_entity": "Die ausgewählte Entität ist kein Konversationsagent",
-      "user_already_configured": "Für diesen Benutzer wurden bereits Sprachproben konfiguriert"
+      "not_conversation_entity": "Die ausgewählte Entität ist kein Konversationsagent"
+    },
+    "abort": {
+      "already_configured": "Dieser Proxy ist bereits konfiguriert"
     }
   },
   "options": {
     "step": {
-      "stt_options": {
-        "title": "STT-Proxy konfigurieren",
-        "description": "Aktualisieren Sie die STT-Entität und Sprachproben.",
+      "main_options": {
+        "title": "Sprechererkennung",
+        "description": "Aktualisieren Sie die Backend-Verbindung und die Sprachproben.",
         "data": {
-          "stt_entity": "Sprache-zu-Text-Entität",
+          "backend_url": "Backend-URL",
           "voice_samples": "Sprachproben"
         },
         "data_description": {
-          "stt_entity": "Wählen Sie die STT-Entität für die Sprechererkennung aus",
-          "voice_samples": "Fügen Sie Sprachproben für die Sprechererkennung hinzu oder ändern Sie diese"
+          "backend_url": "URL des Sprechererkennungs-Servers (z. B. http://localhost:8099)",
+          "voice_samples": "Wählen Sie für jeden Benutzer eine oder mehrere Audiodateien aus, um seine Stimme zu trainieren"
+        }
+      },
+      "stt_options": {
+        "title": "STT-Proxy konfigurieren",
+        "description": "Aktualisieren Sie die umschlossene Sprache-zu-Text-Entität.",
+        "data": {
+          "stt_entity": "Sprache-zu-Text-Entität"
+        },
+        "data_description": {
+          "stt_entity": "Die zu umschließende STT-Entität"
         }
       },
       "conversation_options": {
         "title": "Konversations-Proxy konfigurieren",
-        "description": "Aktualisieren Sie den Konversationsagenten und die Mindestkonfidenz.",
+        "description": "Aktualisieren Sie den umschlossenen Konversationsagenten und den Konfidenzschwellwert.",
         "data": {
           "conversation_entity": "Konversationsagent",
           "min_confidence": "Mindestkonfidenz"
         },
         "data_description": {
-          "conversation_entity": "Wählen Sie den zu umschließenden Konversationsagenten aus",
-          "min_confidence": "Erforderliche Mindesterkennungskonfidenz zum Setzen der Benutzer-ID (0.0-1.0)"
+          "conversation_entity": "Der zu umschließende Konversationsagent",
+          "min_confidence": "Mindesterkennungskonfidenz (0.0-1.0), bevor der erkannte Sprecher angewendet wird"
         }
       }
     },
     "error": {
       "not_stt_entity": "Die ausgewählte Entität ist keine Sprache-zu-Text-Entität",
-      "not_conversation_entity": "Die ausgewählte Entität ist kein Konversationsagent",
-      "user_already_configured": "Für diesen Benutzer wurden bereits Sprachproben konfiguriert"
+      "not_conversation_entity": "Die ausgewählte Entität ist kein Konversationsagent"
     }
   },
   "selector": {
