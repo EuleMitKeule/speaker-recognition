@@ -1,0 +1,33 @@
+name: Validate add-on
+
+# Builds the add-on Docker image exactly the way the Home Assistant Supervisor
+# builds it locally (plain `docker build` of the add-on folder), so a broken
+# add-on build is caught in CI / on pull requests instead of only failing on a
+# user's Supervisor.
+
+on:
+  push:
+    paths:
+      - "speaker_recognition_addon/**"
+      - ".github/workflows/validate-addon.yml"
+  pull_request:
+    paths:
+      - "speaker_recognition_addon/**"
+      - ".github/workflows/validate-addon.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build add-on image
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Build add-on Docker image
+        run: docker build ./speaker_recognition_addon --tag speaker-recognition-addon:ci
+
+      - name: Smoke test (server package imports on Python 3.9)
+        run: |
+          docker run --rm --entrypoint python speaker-recognition-addon:ci \
+            -c "import sys, speaker_recognition; print('python', sys.version); print('import ok')"
