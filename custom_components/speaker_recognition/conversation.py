@@ -200,6 +200,19 @@ class SpeakerRecognitionConversationEntity(
             )
             return ConversationResult(response=response, conversation_id=None)
 
+        _LOGGER.info(
+            "Speaker recognition conversation proxy called: source_agent=%s, "
+            "original_user_id=%s, conversation_id=%s, device_id=%s, "
+            "satellite_id=%s, language=%s, text_length=%d",
+            self._conversation_entity_id,
+            user_input.context.user_id,
+            user_input.conversation_id,
+            user_input.device_id,
+            user_input.satellite_id,
+            user_input.language,
+            len(user_input.text or ""),
+        )
+
         # Check if we should enrich the user_id with speaker recognition
         # Check for speaker recognition data
         speaker_data = self.hass.data.get("speaker_recognition", {}).get("last_result")
@@ -213,55 +226,118 @@ class SpeakerRecognitionConversationEntity(
 
             confidence = speaker_data.get("confidence", 0)
             recognized_user_id = speaker_data.get("user_id")
+            timestamp = speaker_data.get("timestamp", 0)
+            age = self.hass.loop.time() - timestamp if timestamp else None
+            age_text = f"{age:.3f}" if age is not None else "unknown"
+
+            _LOGGER.info(
+                "Speaker recognition candidate for conversation: user_id=%s, "
+                "confidence=%.3f, threshold=%.3f, age=%s, original_user_id=%s",
+                recognized_user_id,
+                confidence,
+                min_confidence,
+                age_text,
+                user_input.context.user_id,
+            )
 
             # Check if confidence is above threshold
             if confidence >= min_confidence and recognized_user_id:
                 # Check if result is recent (within last 5 seconds)
-                timestamp = speaker_data.get("timestamp", 0)
-                age = self.hass.loop.time() - timestamp
-
-                if age < 5.0:  # 5 second window
+                if age is not None and age < 5.0:  # 5 second window
                     # Enrich if: no user_id OR different user_id from recognition
                     should_enrich = (
                         user_input.context.user_id is None
                         or user_input.context.user_id != recognized_user_id
                     )
 
-                    if should_enrich:
+                    recognized_user = await self.hass.auth.async_get_user(
+                        recognized_user_id
+                    )
+                    speaker_name = (
+                        recognized_user.name
+                        if recognized_user and recognized_user.name
+                        else recognized_user_id
+                    )
+                    enriched_text = (
+                        f"[Recognized Home Assistant user: {speaker_name}] "
+                        f"{user_input.text}"
+                    )
+
+                    if not should_enrich:
+                        _LOGGER.info(
+                            "Speaker recognition result accepted without enrichment: "
+                            "reason=already_same_user, user_id=%s, confidence=%.3f, "
+                            "age=%.3f, speaker_name=%s",
+                            user_input.context.user_id,
+                            confidence,
+                            age,
+                            speaker_name,
+                        )
+                    else:
                         _LOGGER.info(
                             "Enriching conversation with speaker recognition: "
-                            "original_user_id=%s, recognized_user_id=%s, confidence=%.3f",
+                            "original_user_id=%s, recognized_user_id=%s, "
+                            "confidence=%.3f, age=%.3f, speaker_name=%s",
                             user_input.context.user_id,
                             recognized_user_id,
                             confidence,
+                            age,
+                            speaker_name,
                         )
 
-                        # Create new context with user_id
-                        enriched_context = Context(
+                    _LOGGER.info(
+                        "Injecting recognized speaker name into conversation text: "
+                        "speaker_name=%s, original_text_length=%d, enriched_text_length=%d",
+                        speaker_name,
+                        len(user_input.text or ""),
+                        len(enriched_text),
+                    )
+
+                    original_context = user_input.context
+                    if should_enrich:
+                        conversation_context = Context(
                             user_id=recognized_user_id,
-                            parent_id=user_input.context.parent_id,
-                            id=user_input.context.id,
+                            parent_id=original_context.parent_id,
+                            id=original_context.id,
                         )
+                    else:
+                        conversation_context = original_context
 
-                        # Create new input with enriched context
-                        user_input = ConversationInput(
-                            text=user_input.text,
-                            context=enriched_context,
-                            conversation_id=user_input.conversation_id,
-                            device_id=user_input.device_id,
-                            satellite_id=user_input.satellite_id,
-                            language=user_input.language,
-                            agent_id=user_input.agent_id,
-                            extra_system_prompt=user_input.extra_system_prompt,
-                        )
+                    user_input = ConversationInput(
+                        text=enriched_text,
+                        context=conversation_context,
+                        conversation_id=user_input.conversation_id,
+                        device_id=user_input.device_id,
+                        satellite_id=user_input.satellite_id,
+                        language=user_input.language,
+                        agent_id=user_input.agent_id,
+                        extra_system_prompt=user_input.extra_system_prompt,
+                    )
                 else:
-                    _LOGGER.debug("Speaker recognition data too old: %.1f seconds", age)
+                    _LOGGER.info(
+                        "Speaker recognition result rejected for conversation: "
+                        "reason=too_old, user_id=%s, confidence=%.3f, age=%s",
+                        recognized_user_id,
+                        confidence,
+                        age_text,
+                    )
             else:
-                _LOGGER.debug(
-                    "Speaker recognition confidence %.3f below threshold %.3f",
+                reason = "missing_user_id" if not recognized_user_id else "below_threshold"
+                _LOGGER.info(
+                    "Speaker recognition result rejected for conversation: "
+                    "reason=%s, user_id=%s, confidence=%.3f, threshold=%.3f, age=%s",
+                    reason,
+                    recognized_user_id,
                     confidence,
                     min_confidence,
+                    age_text,
                 )
+        else:
+            _LOGGER.info(
+                "Speaker recognition result rejected for conversation: "
+                "reason=no_data, source_agent=%s",
+                self._conversation_entity_id,
+            )
 
         # Forward to source agent
         return await source_agent.async_process(user_input)

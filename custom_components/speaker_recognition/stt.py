@@ -232,9 +232,9 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
                 )
 
                 if recognition_result:
-                    # Log the recognition result as error for now
-                    _LOGGER.error(
-                        "Speaker Recognition Result - User: %s, Confidence: %.3f, All scores: %s",
+                    # Log successful recognition without marking the HA log as an error.
+                    _LOGGER.info(
+                        "Speaker recognition result: user_id=%s, confidence=%.3f, all_scores=%s",
                         recognition_result.user_id,
                         recognition_result.confidence,
                         {
@@ -257,11 +257,20 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
                     # Store the most recent recognition result for potential conversation use
                     if "speaker_recognition" not in self.hass.data:
                         self.hass.data["speaker_recognition"] = {}
+                    timestamp = self.hass.loop.time()
                     self.hass.data["speaker_recognition"]["last_result"] = {
                         "user_id": recognition_result.user_id,
                         "confidence": recognition_result.confidence,
-                        "timestamp": self.hass.loop.time(),
+                        "timestamp": timestamp,
                     }
+                    _LOGGER.info(
+                        "Stored speaker recognition result for conversation: "
+                        "user_id=%s, confidence=%.3f, timestamp=%.3f, entity_id=%s",
+                        recognition_result.user_id,
+                        recognition_result.confidence,
+                        timestamp,
+                        self.entity_id,
+                    )
                 else:
                     _LOGGER.warning("Speaker recognition returned no result")
             except (OSError, ValueError, TypeError) as error:
