@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 
 from .const import (
     CONF_BACKEND_URL,
@@ -17,6 +18,31 @@ from .const import (
 from .recognition import SpeakerRecognition
 
 type SpeakerRecognitionConfigEntry = ConfigEntry[SpeakerRecognition]
+
+TRAINING_NOTIFICATION_ID = "speaker_recognition_training"
+
+
+@callback
+def _async_update_training_notification(
+    hass: HomeAssistant, recognition: SpeakerRecognition
+) -> None:
+    """Notify the user if the last training attempt failed; clear it otherwise.
+
+    Training happens in the background, so without this a failure (backend
+    unreachable, audio files not found, ...) would only appear in the logs.
+    """
+    if recognition.last_train_error:
+        persistent_notification.async_create(
+            hass,
+            (
+                "Speaker Recognition could not train the configured voices:\n\n"
+                f"{recognition.last_train_error}"
+            ),
+            title="Speaker Recognition",
+            notification_id=TRAINING_NOTIFICATION_ID,
+        )
+    else:
+        persistent_notification.async_dismiss(hass, TRAINING_NOTIFICATION_ID)
 
 
 def _get_main_entry(hass: HomeAssistant) -> ConfigEntry | None:
@@ -50,6 +76,7 @@ async def async_setup_main_entry(
 
     if voice_samples:
         await recognition.async_train()
+        _async_update_training_notification(hass, recognition)
 
     entry.runtime_data = recognition
     entry.async_on_unload(entry.add_update_listener(async_update_main_listener))
