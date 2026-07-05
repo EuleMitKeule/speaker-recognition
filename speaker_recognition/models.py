@@ -74,6 +74,15 @@ class HealthResponse(BaseModel):
     status: str
 
 
+class StatusResponse(BaseModel):
+    """Speaker recognition training status response."""
+
+    trained: bool
+    users: list[str]
+    embeddings_count: int
+    embeddings_directory: str
+
+
 class ErrorResponse(BaseModel):
     """Error response data model."""
 

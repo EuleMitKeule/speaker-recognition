@@ -9,6 +9,7 @@ from speaker_recognition.models import (
     HealthResponse,
     RecognitionRequest,
     RecognitionResult,
+    StatusResponse,
     TrainingRequest,
     TrainingResult,
 )
@@ -27,6 +28,12 @@ app = FastAPI(
 async def health_check() -> HealthResponse:
     """Health check endpoint."""
     return HealthResponse(status="healthy")
+
+
+@app.get("/status", response_model=StatusResponse, tags=["Status"])
+async def status() -> StatusResponse:
+    """Return speaker recognition training status."""
+    return recognizer.status()
 
 
 @app.post(

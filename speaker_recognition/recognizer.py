@@ -15,6 +15,7 @@ from speaker_recognition.models import (
     RecognitionResult,
     TrainingRequest,
     TrainingResult,
+    StatusResponse,
     config,
 )
 
@@ -55,6 +56,53 @@ class SpeakerRecognizer:
         """
         self._config.embeddings_directory = value
         self._embeddings_directory = Path(value)
+
+    def load_embeddings(self) -> bool:
+        """Load cached embeddings from disk.
+
+        Returns:
+            True if at least one embedding was loaded, False otherwise.
+        """
+        loaded_embeddings: dict[str, NDArray[np.float32]] = {}
+
+        if not self._embeddings_directory.exists():
+            self._reference_embeddings = {}
+            self._is_trained = False
+            return False
+
+        suffix = "_embedding.npy"
+        for embedding_path in sorted(self._embeddings_directory.glob(f"*{suffix}")):
+            user_id = embedding_path.name[: -len(suffix)]
+            if not user_id:
+                _LOGGER.warning("Skipping embedding with empty user id: %s", embedding_path)
+                continue
+
+            try:
+                loaded_embeddings[user_id] = np.asarray(
+                    np.load(embedding_path, allow_pickle=False), dtype=np.float32
+                )
+            except Exception as error:
+                _LOGGER.warning("Could not load embedding %s: %s", embedding_path, error)
+
+        self._reference_embeddings = loaded_embeddings
+        self._is_trained = bool(loaded_embeddings)
+
+        if self._is_trained:
+            _LOGGER.info("Loaded %d cached embeddings", len(loaded_embeddings))
+        else:
+            _LOGGER.info("No cached embeddings found")
+
+        return self._is_trained
+
+    def status(self) -> StatusResponse:
+        """Return current backend training status."""
+        users = sorted(self._reference_embeddings)
+        return StatusResponse(
+            trained=self._is_trained and bool(users),
+            users=users,
+            embeddings_count=len(users),
+            embeddings_directory=str(self._embeddings_directory),
+        )
 
     def process_audio_input(self, audio_input: AudioInput) -> NDArray[np.float32]:
         """Process audio input from base64 encoded data.

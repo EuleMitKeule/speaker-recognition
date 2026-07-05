@@ -80,6 +80,7 @@ def serve(
     recognizer.embeddings_directory = config.embeddings_directory
 
     configure_logging(config.log_level)
+    recognizer.load_embeddings()
 
     _LOGGER.info("Starting Speaker Recognition Service...")
     _LOGGER.info(f"Host: {config.host}")
