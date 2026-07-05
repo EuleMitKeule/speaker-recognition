@@ -43,10 +43,15 @@ class SpeakerRecognition:
         self.hass = hass
         self.voice_samples = voice_samples
         self._trained = False
+        # Human-readable reason the last training attempt failed, or None if the
+        # last attempt succeeded (or there was nothing to train). Surfaced to the
+        # user as a notification by __init__.py.
+        self.last_train_error: str | None = None
         self._client = SpeakerRecognitionClient(base_url=base_url, timeout=300.0)
 
     async def async_train(self) -> None:
         """Train the speaker recognition model with configured voice samples."""
+        self.last_train_error = None
         _LOGGER.debug(
             "Training speaker recognition with %d voice samples",
             len(self.voice_samples),
@@ -91,6 +96,11 @@ class SpeakerRecognition:
             if not voice_sample_models:
                 _LOGGER.warning("No valid training samples prepared")
                 self._trained = False
+                self.last_train_error = (
+                    "No valid audio files were found for the configured voice "
+                    "samples. Make sure the selected files exist under Home "
+                    "Assistant's media folder."
+                )
                 return
 
             request = TrainingRequest(voice_samples=voice_sample_models)
@@ -99,6 +109,7 @@ class SpeakerRecognition:
         except (OSError, ValueError, TypeError) as error:
             _LOGGER.error("Error during training: %s", error)
             self._trained = False
+            self.last_train_error = str(error)
         else:
             self._trained = True
             _LOGGER.info(
