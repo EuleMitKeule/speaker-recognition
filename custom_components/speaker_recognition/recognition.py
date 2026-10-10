@@ -103,7 +103,7 @@ class SpeakerRecognition:
             self._trained = True
             _LOGGER.info(
                 "Speaker recognition training completed: %d users trained",
-                result.users_trained,
+                result.count,
             )
 
     async def async_recognize(
