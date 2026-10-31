@@ -33,7 +33,6 @@ from .const import (
     DOMAIN,
     ENTRY_TYPE_MAIN,
 )
-from .recognition import SpeakerRecognition
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -124,11 +123,6 @@ class SpeakerRecognitionConversationEntity(
         self._main_entry = main_entry
 
         self._cached_languages: list[str] | None | str = None
-
-    @property
-    def recognition(self) -> SpeakerRecognition:
-        """Get the speaker recognition instance."""
-        return self._main_entry.runtime_data
 
     @property
     def min_confidence(self) -> float:

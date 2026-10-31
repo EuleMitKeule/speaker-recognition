@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import httpx
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import (
     CONF_BACKEND_URL,
@@ -49,7 +51,12 @@ async def async_setup_main_entry(
     recognition = SpeakerRecognition(hass, voice_samples, backend_url)
 
     if voice_samples:
-        await recognition.async_train()
+        try:
+            await recognition.async_train()
+        except httpx.HTTPError as error:
+            raise ConfigEntryNotReady(
+                f"Speaker recognition backend unavailable: {error}"
+            ) from error
 
     entry.runtime_data = recognition
     entry.async_on_unload(entry.add_update_listener(async_update_main_listener))
@@ -99,13 +106,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_update_main_listener(
     hass: HomeAssistant, entry: SpeakerRecognitionConfigEntry
 ) -> None:
-    """Handle main config options update."""
-    voice_samples = entry.options.get(CONF_VOICE_SAMPLES, [])
-    entry.runtime_data.update_voice_samples(voice_samples)
-
-    if voice_samples:
-        await entry.runtime_data.async_train()
-
+    """Handle main config options update; the reload retrains with the new samples."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
