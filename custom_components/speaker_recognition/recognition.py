@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import httpx
 from speaker_recognition import SpeakerRecognitionClient
 from speaker_recognition.models import (
     AudioInput,
@@ -46,7 +47,11 @@ class SpeakerRecognition:
         self._client = SpeakerRecognitionClient(base_url=base_url, timeout=300.0)
 
     async def async_train(self) -> None:
-        """Train the speaker recognition model with configured voice samples."""
+        """Train the speaker recognition model with configured voice samples.
+
+        Raises:
+            httpx.HTTPError: If the backend is unavailable; the caller decides when to retry
+        """
         _LOGGER.debug(
             "Training speaker recognition with %d voice samples",
             len(self.voice_samples),
@@ -134,7 +139,7 @@ class SpeakerRecognition:
 
             result = await self._client.recognize(request)
 
-        except (OSError, ValueError, TypeError) as error:
+        except (httpx.HTTPError, OSError, ValueError, TypeError) as error:
             _LOGGER.error("Error during recognition: %s", error)
             return None
         else:
@@ -145,13 +150,3 @@ class SpeakerRecognition:
             )
 
             return result
-
-    def update_voice_samples(self, voice_samples: list[dict]) -> None:
-        """Update voice samples and mark as needing retraining.
-
-        Args:
-            voice_samples: New list of voice samples
-        """
-        self.voice_samples = voice_samples
-        self._trained = False
-        _LOGGER.info("Voice samples updated, retraining required")

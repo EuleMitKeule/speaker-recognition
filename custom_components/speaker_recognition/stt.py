@@ -162,9 +162,9 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
         _state_changed_listener()
 
     @property
-    def recognition(self) -> SpeakerRecognition:
-        """Get the speaker recognition instance."""
-        return self._main_entry.runtime_data
+    def recognition(self) -> SpeakerRecognition | None:
+        """Get the speaker recognition instance, None while the main entry is not set up."""
+        return getattr(self._main_entry, "runtime_data", None)
 
     @property
     def supported_languages(self) -> list[str]:
@@ -224,10 +224,16 @@ class SpeakerRecognitionSTTEntity(SpeechToTextEntity):
             metadata, buffered_stream()
         )
 
+        recognition = self.recognition
+        if recognition is None:
+            # The transcript must survive a backend outage; only the speaker stays unknown.
+            _LOGGER.warning("Speaker recognition not set up, skipping speaker recognition")
+            return result
+
         # Perform speaker recognition on the collected audio
         if audio_buffer:
             try:
-                recognition_result = await self.recognition.async_recognize(
+                recognition_result = await recognition.async_recognize(
                     bytes(audio_buffer), sample_rate=metadata.sample_rate
                 )
 
