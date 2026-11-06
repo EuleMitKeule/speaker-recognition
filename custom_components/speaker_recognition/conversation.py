@@ -21,6 +21,7 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers.chat_session import async_get_chat_session
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.intent import IntentResponse, IntentResponseErrorCode
@@ -203,6 +204,7 @@ class SpeakerRecognitionConversationEntity(
         # Check if we should enrich the user_id with speaker recognition
         # Check for speaker recognition data
         speaker_data = self.hass.data.get("speaker_recognition", {}).get("last_result")
+        enriched = False
 
         if speaker_data:
             # Get minimum confidence from options or data
@@ -254,6 +256,7 @@ class SpeakerRecognitionConversationEntity(
                             agent_id=user_input.agent_id,
                             extra_system_prompt=user_input.extra_system_prompt,
                         )
+                        enriched = True
                 else:
                     _LOGGER.debug("Speaker recognition data too old: %.1f seconds", age)
             else:
@@ -264,4 +267,29 @@ class SpeakerRecognitionConversationEntity(
                 )
 
         # Forward to source agent
+        if enriched and isinstance(source_agent, ConversationEntity):
+            return await self._async_process_enriched(source_agent, user_input)
         return await source_agent.async_process(user_input)
+
+    async def _async_process_enriched(
+        self, source_agent: ConversationEntity, user_input: ConversationInput
+    ) -> ConversationResult:
+        """Let the source agent handle input whose user was set by recognition.
+
+        Since Home Assistant 2026.11 the user of a conversation's first context
+        owns its chat session, and a context of another user raises
+        Unauthorized. The pipeline opens the session for the satellite (no
+        user), so the source agent's async_process with the recognized user
+        fails. The recognized user is data of the turn, not the caller of the
+        session: enter the session without a context, as a satellite does.
+        """
+        try:
+            session_manager = async_get_chat_session(
+                self.hass, user_input.conversation_id, context=None
+            )
+        except TypeError:  # before 2026.11: no session owner, no context argument
+            return await source_agent.async_process(user_input)
+        with session_manager as session, conversation.async_get_chat_log(
+            self.hass, session, user_input
+        ) as chat_log:
+            return await source_agent._async_handle_message(user_input, chat_log)
